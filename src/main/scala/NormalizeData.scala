@@ -3,30 +3,58 @@ import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql.functions._
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.linalg.SparseVector
+import org.rogach.scallop._
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkConf
 //import org.apache.spark.mllib.feature.Stemmer
 import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
 import org.apache.spark.mllib.util.MLUtils
+import org.apache.log4j._
+import org.apache.hadoop.fs._
 
 import org.apache.spark.mllib.regression.LabeledPoint
 
+class NormalizeConf(args: Seq[String]) extends ScallopConf(args) {
+  mainOptions = Seq(input, output)
+  val input: ScallopOption[String] = opt[String](descr = "input path", required = true)
+  val output: ScallopOption[String] = opt[String](descr = "output path", required = true)
+  val numExecutors: ScallopOption[Int] = opt[Int](descr = "number of executors", required = false, default = Some(1))
+  val executorCores: ScallopOption[Int] = opt[Int](descr = "number of cores", required = false, default = Some(1))
+  verify()
+}
+
 object NormalizeData{
-  def main(args: Array[String]): Unit = {
+
+  val log: Logger = {
+    Logger.getLogger(getClass.getName)
+  }
+
+  def main(argv: Array[String]): Unit = {
+    val args = new NormalizeConf(argv)
+
+    log.info("Input: " + args.input())
+    log.info("Output: " + args.output())
+
+    val conf = new SparkConf().setAppName("Compute Pairs PMI")
+    val sc = new SparkContext(conf)
+
+    val outputDir = new Path(args.output())
+    FileSystem.get(sc.hadoopConfiguration).delete(outputDir, true)
+
     // get nlp-session if not created
     val spark = SparkSession.builder.enableHiveSupport().getOrCreate()
 
-    // formatted question csv
-//    val path = "/Users/guanyingzhao/Desktop/cs651_project_data/stackoverflows_questions_no_answers.csv"
-    val path = "/Users/guanyingzhao/Desktop/cs651_project_data/output_questionwithans_final.csv"
+    val input_path = args.input()
+    val outputPath = args.output()
 
-    val outputPath = "/Users/guanyingzhao/Desktop/cs651_project_data/stackoverflows_outputs/"
     // read csv file
     val ques_df = spark.read.format("csv")
       .option("inferSchema", "true")
       .option("header", "true")
       .option("mode", "DROPMALFORMED")
-      .load(path)
+      .load(input_path)
       .toDF()
       .limit(1000)
 
