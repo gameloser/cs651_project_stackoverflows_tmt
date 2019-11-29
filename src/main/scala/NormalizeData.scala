@@ -56,7 +56,6 @@ object NormalizeData{
       .option("mode", "DROPMALFORMED")
       .load(input_path)
       .toDF()
-      .limit(1000)
 
 
     //    val struct2Arr = udf((s : String) => s.toSeq)
