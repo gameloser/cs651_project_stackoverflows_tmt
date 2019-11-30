@@ -16,14 +16,7 @@ import org.apache.hadoop.fs._
 
 import org.apache.spark.mllib.regression.LabeledPoint
 
-class NormalizeConf(args: Seq[String]) extends ScallopConf(args) {
-  mainOptions = Seq(input, output)
-  val input: ScallopOption[String] = opt[String](descr = "input path", required = true)
-  val output: ScallopOption[String] = opt[String](descr = "output path", required = true)
-  val numExecutors: ScallopOption[Int] = opt[Int](descr = "number of executors", required = false, default = Some(1))
-  val executorCores: ScallopOption[Int] = opt[Int](descr = "number of cores", required = false, default = Some(1))
-  verify()
-}
+
 
 object NormalizeData{
 
