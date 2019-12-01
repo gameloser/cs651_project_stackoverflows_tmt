@@ -113,6 +113,6 @@ object train{
    val regEval = new RegressionEvaluator()
   .setPredictionCol("prediction")
   .setMetricName("mae")
-   println("fuck: "+ regEval.evaluate(prediction))
+   println("the mean absolute error is  "+ regEval.evaluate(prediction))
   }
 }
