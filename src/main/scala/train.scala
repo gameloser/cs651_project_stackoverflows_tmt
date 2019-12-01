@@ -16,10 +16,10 @@ import org.apache.hadoop.fs._
 
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.ml.classification.LogisticRegression
+import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
+import org.apache.spark.ml.evaluation.RegressionEvaluator
 
-
-
-object NormalizeData{
+object train{
 
   val log: Logger = {
     Logger.getLogger(getClass.getName)
@@ -43,21 +43,17 @@ object NormalizeData{
     val input_path = args.input()
     val outputPath = args.output()
 
-    // // read csv file
-    // val ques_df = spark.read.format("csv")
-    //   .option("inferSchema", "true")
-    //   .option("header", "true")
-    //   .option("mode", "DROPMALFORMED")
-    //   .load(input_path)
-    //   .toDF()
-
     // Load training data
-    val training = spark.read.format("libsvm").load(input_path)
+    val data = spark.read.format("libsvm").load(input_path)
+
+    val splits = data.randomSplit(Array(0.9, 0.1), seed = 11L)
+    val training = splits(0).cache()
+    val test = splits(1)
 
     val lr = new LogisticRegression()
-    .setMaxIter(10)
-    .setRegParam(0.3)
-    .setElasticNetParam(0.8)
+    .setMaxIter(1000)
+    .setRegParam(0.01)
+    .setElasticNetParam(0)
 
     // Fit the model
     val lrModel = lr.fit(training)
@@ -65,10 +61,58 @@ object NormalizeData{
     // Print the coefficients and intercept for logistic regression
     println(s"Coefficients: ${lrModel.coefficients} Intercept: ${lrModel.intercept}")
 
-    
+   val trainingSummary = lrModel.binarySummary
+
+// Obtain the objective per iteration.
 
     // save to lib svm format
-    MLUtils.saveAsLibSVMFile(labeledPoints, outputPath)
+  //  MLUtils.saveAsLibSVMFile(labeledPoints, outputPath)
+// Obtain the objective per iteration
+   val objectiveHistory = trainingSummary.objectiveHistory
+   println("objectiveHistory:")
+   objectiveHistory.foreach(println)
 
+  // for multiclass, we can inspect metrics on a per-label basis
+   println("False positive rate by label:")
+   trainingSummary.falsePositiveRateByLabel.zipWithIndex.foreach { case (rate, label) =>
+   println(s"label $label: $rate")
+  }
+
+   println("True positive rate by label:")
+   trainingSummary.truePositiveRateByLabel.zipWithIndex.foreach { case (rate, label) =>
+  println(s"label $label: $rate")
+   }
+
+   println("Precision by label:")
+   trainingSummary.precisionByLabel.zipWithIndex.foreach { case (prec, label) =>
+  println(s"label $label: $prec")
+}
+
+   println("Recall by label:")
+  trainingSummary.recallByLabel.zipWithIndex.foreach { case (rec, label) =>
+  println(s"label $label: $rec")
+}
+
+
+   println("F-measure by label:")
+   trainingSummary.fMeasureByLabel.zipWithIndex.foreach { case (f, label) =>
+  println(s"label $label: $f")
+}
+
+   val accuracy = trainingSummary.accuracy
+   val falsePositiveRate = trainingSummary.weightedFalsePositiveRate
+   val truePositiveRate = trainingSummary.weightedTruePositiveRate
+   val fMeasure = trainingSummary.weightedFMeasure
+   val precision = trainingSummary.weightedPrecision
+   val recall = trainingSummary.weightedRecall
+   println(s"Accuracy: $accuracy\nFPR: $falsePositiveRate\nTPR: $truePositiveRate\n" +
+  s"F-measure: $fMeasure\nPrecision: $precision\nRecall: $recall")
+
+   // Compute raw scores on the test set.
+   val prediction = lrModel.transform(test)
+   val regEval = new RegressionEvaluator()
+  .setPredictionCol("prediction")
+  .setMetricName("mae")
+   println("fuck: "+ regEval.evaluate(prediction))
   }
 }
