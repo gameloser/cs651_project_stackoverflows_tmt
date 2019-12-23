@@ -8,7 +8,7 @@
 <h3>Data cleaning and staging</h3>
 <p>We used dataframes and spark SQL function to perform most of our data processing</p>
 <h3>Data Normalization and Standardization</h3>
-<p></p>
+<p>We used MinMaxScaler and CountVectorizer methods to normalize the data. And perform naive NLP approach to extract key words from features 'body' and 'title' using RegexTokenizer and StopWordsRemover</p>
 <h3>Data Mining</h3>
 <p>Built a simple pipeline using the spark MLlib library. The loss function we chose is logistic regression with parameter lambda 0.01 and l2 regularization</p>
 </p>
