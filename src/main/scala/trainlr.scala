@@ -67,18 +67,12 @@ object trainlr{
     val roc = trainingSummary.roc
     roc.show()
     
-//    val df = spark.createDataFrame(Seq(
-//      (1.0, 1.0)
-//    )).toDF("label", "features")
-
-//    df.collect().foreach(p=>{
-      println(s"areaUnderROC: ${trainingSummary.areaUnderROC}")
-//    })
+   println(s"areaUnderROC: ${trainingSummary.areaUnderROC}")
 
    // Obtain the objective per iteration
    val objectiveHistory = trainingSummary.objectiveHistory
-   println("objectiveHistory:")
-   objectiveHistory.foreach(println)
+//   println("objectiveHistory:")
+//   objectiveHistory.foreach(println)
 
   // for multiclass, we can inspect metrics on a per-label basis
    println("False positive rate by label:")
@@ -114,10 +108,11 @@ object trainlr{
    val precision = trainingSummary.weightedPrecision
    val recall = trainingSummary.weightedRecall
    
-//   rdd.foreach(p=>{
-     println(s"Accuracy: $accuracy\nFPR: $falsePositiveRate\nTPR: $truePositiveRate\n" +
-  s"F-measure: $fMeasure\nPrecision: $precision\nRecall: $recall")
-//   })
+   val listRDD = sc.parallelize(List(1))
+   listRDD.collect().foreach(p=>{
+     println(s"Accuracy: $accuracy\nFPR: $falsePositiveRate\nTPR: $truePositiveRate\n" + 
+       s"F-measure: $fMeasure\nPrecision: $precision\nRecall: $recall")
+   })
 
    // Compute raw scores on the test set.
    val prediction = lrModel.transform(test)
@@ -125,9 +120,7 @@ object trainlr{
   .setPredictionCol("prediction")
   .setMetricName("mae")
   
-//  rdd.foreach(p=>{
     println("the mean absolute error is  "+ regEval.evaluate(prediction))
-//  })
   
   }
 }
