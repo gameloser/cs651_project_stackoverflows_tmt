@@ -46,6 +46,7 @@ object NormalizeData2{
       .option("mode", "DROPMALFORMED")
       .load(input_path)
       .toDF()
+      .limit(5000)
 
 
     /**************** Data pre-processing ***************/

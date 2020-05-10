@@ -31,7 +31,7 @@ object train{
     log.info("Input: " + args.input())
     log.info("Output: " + args.output())
 
-    val conf = new SparkConf().setAppName("Compute Pairs PMI")
+    val conf = new SparkConf().setAppName("Train models")
     val sc = new SparkContext(conf)
 
     val outputDir = new Path(args.output())
@@ -63,11 +63,16 @@ object train{
 
    val trainingSummary = lrModel.binarySummary
 
-// Obtain the objective per iteration.
+    // Obtain the receiver-operating characteristic as a dataframe and areaUnderROC.
+    val roc = trainingSummary.roc
+    roc.show()
+    
+    val rdd = sc.parallelize(Array(1))
+    rdd.foreach(p=>{
+      println(s"areaUnderROC: ${trainingSummary.areaUnderROC}")
+    })
 
-    // save to lib svm format
-  //  MLUtils.saveAsLibSVMFile(labeledPoints, outputPath)
-// Obtain the objective per iteration
+   // Obtain the objective per iteration
    val objectiveHistory = trainingSummary.objectiveHistory
    println("objectiveHistory:")
    objectiveHistory.foreach(println)
@@ -105,14 +110,21 @@ object train{
    val fMeasure = trainingSummary.weightedFMeasure
    val precision = trainingSummary.weightedPrecision
    val recall = trainingSummary.weightedRecall
-   println(s"Accuracy: $accuracy\nFPR: $falsePositiveRate\nTPR: $truePositiveRate\n" +
+   
+   rdd.foreach(p=>{
+     println(s"Accuracy: $accuracy\nFPR: $falsePositiveRate\nTPR: $truePositiveRate\n" +
   s"F-measure: $fMeasure\nPrecision: $precision\nRecall: $recall")
+   })
 
    // Compute raw scores on the test set.
    val prediction = lrModel.transform(test)
    val regEval = new RegressionEvaluator()
   .setPredictionCol("prediction")
   .setMetricName("mae")
-   println("the mean absolute error is  "+ regEval.evaluate(prediction))
+  
+  rdd.foreach(p=>{
+    println("the mean absolute error is  "+ regEval.evaluate(prediction))
+  })
+  
   }
 }
