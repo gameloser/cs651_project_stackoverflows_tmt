@@ -67,8 +67,11 @@ object trainlr{
     val roc = trainingSummary.roc
     roc.show()
     
-    val rdd = sc.parallelize(Array(1))
-    rdd.foreach(p=>{
+    val df = spark.createDataFrame(Seq(
+      (1.0, 1.0)
+    )).toDF("label", "features")
+
+    df.foreach(p=>{
       println(s"areaUnderROC: ${trainingSummary.areaUnderROC}")
     })
 
@@ -111,10 +114,10 @@ object trainlr{
    val precision = trainingSummary.weightedPrecision
    val recall = trainingSummary.weightedRecall
    
-   rdd.foreach(p=>{
+//   rdd.foreach(p=>{
      println(s"Accuracy: $accuracy\nFPR: $falsePositiveRate\nTPR: $truePositiveRate\n" +
   s"F-measure: $fMeasure\nPrecision: $precision\nRecall: $recall")
-   })
+//   })
 
    // Compute raw scores on the test set.
    val prediction = lrModel.transform(test)
@@ -122,9 +125,9 @@ object trainlr{
   .setPredictionCol("prediction")
   .setMetricName("mae")
   
-  rdd.foreach(p=>{
+//  rdd.foreach(p=>{
     println("the mean absolute error is  "+ regEval.evaluate(prediction))
-  })
+//  })
   
   }
 }
