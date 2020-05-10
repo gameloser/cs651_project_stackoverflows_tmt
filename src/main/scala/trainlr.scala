@@ -19,7 +19,7 @@ import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 
-object train{
+object trainlr{
 
   val log: Logger = {
     Logger.getLogger(getClass.getName)
