@@ -2,6 +2,7 @@
 target/
 .idea/
 assignments.iml
+data/
 .classpath
 .project
 .settings/
