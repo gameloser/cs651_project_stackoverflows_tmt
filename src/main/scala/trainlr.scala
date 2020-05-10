@@ -59,7 +59,7 @@ object trainlr{
     val lrModel = lr.fit(training)
 
     // Print the coefficients and intercept for logistic regression
-    println(s"Coefficients: ${lrModel.coefficients} Intercept: ${lrModel.intercept}")
+//    println(s"Coefficients: ${lrModel.coefficients} Intercept: ${lrModel.intercept}")
 
    val trainingSummary = lrModel.binarySummary
 
@@ -67,13 +67,13 @@ object trainlr{
     val roc = trainingSummary.roc
     roc.show()
     
-    val df = spark.createDataFrame(Seq(
-      (1.0, 1.0)
-    )).toDF("label", "features")
+//    val df = spark.createDataFrame(Seq(
+//      (1.0, 1.0)
+//    )).toDF("label", "features")
 
-    df.foreach(p=>{
+//    df.collect().foreach(p=>{
       println(s"areaUnderROC: ${trainingSummary.areaUnderROC}")
-    })
+//    })
 
    // Obtain the objective per iteration
    val objectiveHistory = trainingSummary.objectiveHistory
