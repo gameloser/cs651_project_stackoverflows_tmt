@@ -65,14 +65,15 @@ object trainrf{
       .setMaxCategories(4)
       .fit(data)
     
-    // Split the data into training and test sets (20% held out for testing).
-    val Array(trainingData, testData) = data.randomSplit(Array(0.8, 0.2))
+    // Split the data into training and test sets (10% held out for testing).
+    val Array(trainingData, testData) = data.randomSplit(Array(0.9, 0.1))
     
     // Train a RandomForest model.
     val rf = new RandomForestClassifier()
       .setLabelCol("indexedLabel")
       .setFeaturesCol("indexedFeatures")
-      .setNumTrees(10)
+      .setMaxDepth(5)
+      .setNumTrees(20)
     
     // Convert indexed labels back to original labels.
     val labelConverter = new IndexToString()
