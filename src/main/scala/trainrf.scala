@@ -66,14 +66,14 @@ object trainrf{
       .fit(data)
     
     // Split the data into training and test sets (10% held out for testing).
-    val Array(trainingData, testData) = data.randomSplit(Array(0.9, 0.1))
+    val Array(trainingData, testData) = data.randomSplit(Array(0.7, 0.3))
     
     // Train a RandomForest model.
     val rf = new RandomForestClassifier()
       .setLabelCol("indexedLabel")
       .setFeaturesCol("indexedFeatures")
-      .setMaxDepth(5)
-      .setNumTrees(20)
+      .setMaxDepth(3)
+      .setNumTrees(10)
     
     // Convert indexed labels back to original labels.
     val labelConverter = new IndexToString()
@@ -102,8 +102,8 @@ object trainrf{
     val accuracy = evaluator.evaluate(predictions)
     println(s"Test Error = ${(1.0 - accuracy)}")
     
-    val rfModel = model.stages(2).asInstanceOf[RandomForestClassificationModel]
-    println(s"Learned classification forest model:\n ${rfModel.toDebugString}")
+//    val rfModel = model.stages(2).asInstanceOf[RandomForestClassificationModel]
+//    println(s"Learned classification forest model:\n ${rfModel.toDebugString}")
     
     
     
