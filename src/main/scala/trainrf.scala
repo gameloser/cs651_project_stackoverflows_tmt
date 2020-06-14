@@ -20,7 +20,7 @@ import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 
 import org.apache.spark.ml.classification.{RandomForestClassificationModel, RandomForestClassifier}
-import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
+import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, BinaryClassificationEvaluator}
 import org.apache.spark.ml.feature.{IndexToString, StringIndexer, VectorIndexer}
 
 
@@ -57,6 +57,7 @@ object trainrf{
       .setInputCol("label")
       .setOutputCol("indexedLabel")
       .fit(data)
+      
     // Automatically identify categorical features, and index them.
     // Set maxCategories so features with > 4 distinct values are treated as continuous.
     val featureIndexer = new VectorIndexer()
@@ -66,13 +67,14 @@ object trainrf{
       .fit(data)
     
     // Split the data into training and test sets (10% held out for testing).
-    val Array(trainingData, testData) = data.randomSplit(Array(0.8, 0.2))
+    val Array(trainingData, testData) = data.randomSplit(Array(0.7, 0.3), seed = 2020)
     
     // Train a RandomForest model.
     val rf = new RandomForestClassifier()
       .setLabelCol("indexedLabel")
       .setFeaturesCol("indexedFeatures")
       .setNumTrees(10)
+      .setSeed(2020)
     
     // Convert indexed labels back to original labels.
     val labelConverter = new IndexToString()
@@ -85,25 +87,29 @@ object trainrf{
       .setStages(Array(labelIndexer, featureIndexer, rf, labelConverter))
     
     // Train model. This also runs the indexers.
-    val model = pipeline.fit(trainingData)
+    val rfmodel = pipeline.fit(trainingData)
     
     // Make predictions.
-    val predictions = model.transform(testData)
+    val rfPrediction = rfmodel.transform(testData)
     
     // Select example rows to display.
-    predictions.select("predictedLabel", "label", "features").show(5)
+    rfPrediction.select("predictedLabel", "label", "features").show(5)
     
-    // Select (prediction, true label) and compute test error.
-    val evaluator = new MulticlassClassificationEvaluator()
-      .setLabelCol("indexedLabel")
-      .setPredictionCol("prediction")
-      .setMetricName("accuracy")
-    val accuracy = evaluator.evaluate(predictions)
-    println(s"Test Error = ${(1.0 - accuracy)}")
+//    // Select (prediction, true label) and compute test error.
+//    val evaluator = new MulticlassClassificationEvaluator()
+//      .setLabelCol("indexedLabel")
+//      .setPredictionCol("prediction")
+//      .setMetricName("accuracy")
     
-//    val rfModel = model.stages(2).asInstanceOf[RandomForestClassificationModel]
-//    println(s"Learned classification forest model:\n ${rfModel.toDebugString}")
+    // evaluate model with area under ROC
+    val evaluator = new BinaryClassificationEvaluator()
+    .setLabelCol("indexedLabel")
+    .setRawPredictionCol("prediction")
+    .setMetricName("areaUnderROC")
     
+    val accuracy = evaluator.evaluate(rfPrediction)
+    println(s"areaUnderROC: ${accuracy}")
+//    println(s"Test Error = ${(1.0 - accuracy)}")
     
   }
 }
