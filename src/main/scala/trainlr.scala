@@ -1,4 +1,3 @@
-//import org.apache.spark.rdd.RDD.rddToPairRDDFunctions
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql.functions._
 import org.apache.spark.ml.feature._
@@ -17,7 +16,7 @@ import org.apache.hadoop.fs._
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
-import org.apache.spark.ml.evaluation.RegressionEvaluator
+import org.apache.spark.ml.evaluation.{RegressionEvaluator, BinaryClassificationEvaluator}
 
 object trainlr{
 
@@ -31,7 +30,7 @@ object trainlr{
     log.info("Input: " + args.input())
     log.info("Output: " + args.output())
 
-    val conf = new SparkConf().setAppName("Train models")
+    val conf = new SparkConf().setAppName("Train lr models")
     val sc = new SparkContext(conf)
 
     val outputDir = new Path(args.output())
@@ -45,8 +44,9 @@ object trainlr{
 
     // Load training data
     val data = spark.read.format("libsvm").load(input_path)
-
-    val splits = data.randomSplit(Array(0.9, 0.1), seed = 11L)
+    // training data set - 70%
+    // test data set - 30%
+    val splits = data.randomSplit(Array(0.7, 0.3), seed = 2020)
     val training = splits(0).cache()
     val test = splits(1)
 
@@ -57,70 +57,28 @@ object trainlr{
 
     // Fit the model
     val lrModel = lr.fit(training)
-
-    // Print the coefficients and intercept for logistic regression
-//    println(s"Coefficients: ${lrModel.coefficients} Intercept: ${lrModel.intercept}")
-
-   val trainingSummary = lrModel.binarySummary
-
-    // Obtain the receiver-operating characteristic as a dataframe and areaUnderROC.
-    val roc = trainingSummary.roc
-    roc.show()
     
-   println(s"areaUnderROC: ${trainingSummary.areaUnderROC}")
+    // Compute raw scores on the test set.
+    val lrPrediction = lrModel.transform(test)
+    
+    // evaluate rmse
+    val regEval = new RegressionEvaluator()
+    .setPredictionCol("prediction")
+    .setMetricName("rmse")
+    
+    // evaluate model with area under ROC
+    val evaluator = new BinaryClassificationEvaluator()
+    .setLabelCol("label")
+    .setRawPredictionCol("prediction")
+    .setMetricName("areaUnderROC")
 
-   // Obtain the objective per iteration
-   val objectiveHistory = trainingSummary.objectiveHistory
-//   println("objectiveHistory:")
-//   objectiveHistory.foreach(println)
+    // measure the accuracy
+    val accuracy = evaluator.evaluate(lrPrediction)
+    
+    println(s"areaUnderROC: ${accuracy}")
+    
+//    println("the mean absolute error is  "+ regEval.evaluate(lrPrediction))
+    println("the root mean squared error is " + regEval.evaluate(lrPrediction))
 
-  // for multiclass, we can inspect metrics on a per-label basis
-   println("False positive rate by label:")
-   trainingSummary.falsePositiveRateByLabel.zipWithIndex.foreach { case (rate, label) =>
-   println(s"label $label: $rate")
-  }
-
-   println("True positive rate by label:")
-   trainingSummary.truePositiveRateByLabel.zipWithIndex.foreach { case (rate, label) =>
-  println(s"label $label: $rate")
-   }
-
-   println("Precision by label:")
-   trainingSummary.precisionByLabel.zipWithIndex.foreach { case (prec, label) =>
-  println(s"label $label: $prec")
-}
-
-   println("Recall by label:")
-  trainingSummary.recallByLabel.zipWithIndex.foreach { case (rec, label) =>
-  println(s"label $label: $rec")
-}
-
-
-   println("F-measure by label:")
-   trainingSummary.fMeasureByLabel.zipWithIndex.foreach { case (f, label) =>
-  println(s"label $label: $f")
-}
-
-   val accuracy = trainingSummary.accuracy
-   val falsePositiveRate = trainingSummary.weightedFalsePositiveRate
-   val truePositiveRate = trainingSummary.weightedTruePositiveRate
-   val fMeasure = trainingSummary.weightedFMeasure
-   val precision = trainingSummary.weightedPrecision
-   val recall = trainingSummary.weightedRecall
-   
-   val listRDD = sc.parallelize(List(1))
-   listRDD.collect().foreach(p=>{
-     println(s"Accuracy: $accuracy\nFPR: $falsePositiveRate\nTPR: $truePositiveRate\n" + 
-       s"F-measure: $fMeasure\nPrecision: $precision\nRecall: $recall")
-   })
-
-   // Compute raw scores on the test set.
-   val prediction = lrModel.transform(test)
-   val regEval = new RegressionEvaluator()
-  .setPredictionCol("prediction")
-  .setMetricName("mae")
-  
-    println("the mean absolute error is  "+ regEval.evaluate(prediction))
-  
   }
 }

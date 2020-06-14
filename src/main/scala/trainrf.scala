@@ -62,17 +62,16 @@ object trainrf{
     val featureIndexer = new VectorIndexer()
       .setInputCol("features")
       .setOutputCol("indexedFeatures")
-      .setMaxCategories(4)
+      .setMaxCategories(5)
       .fit(data)
     
     // Split the data into training and test sets (10% held out for testing).
-    val Array(trainingData, testData) = data.randomSplit(Array(0.7, 0.3))
+    val Array(trainingData, testData) = data.randomSplit(Array(0.8, 0.2))
     
     // Train a RandomForest model.
     val rf = new RandomForestClassifier()
       .setLabelCol("indexedLabel")
       .setFeaturesCol("indexedFeatures")
-      .setMaxDepth(3)
       .setNumTrees(10)
     
     // Convert indexed labels back to original labels.
@@ -104,7 +103,6 @@ object trainrf{
     
 //    val rfModel = model.stages(2).asInstanceOf[RandomForestClassificationModel]
 //    println(s"Learned classification forest model:\n ${rfModel.toDebugString}")
-    
     
     
   }
