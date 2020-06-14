@@ -36,7 +36,9 @@ object trainrf{
     log.info("Input: " + args.input())
     log.info("Output: " + args.output())
 
-    val conf = new SparkConf().setAppName("Train models")
+    val conf = new SparkConf()
+    .setAppName("Train models")
+    .set("spark.driver.maxResultSize", "4g")
     val sc = new SparkContext(conf)
 
     val outputDir = new Path(args.output())
