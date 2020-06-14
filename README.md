@@ -46,8 +46,6 @@
 |7.362821433173192E-5| 0.8290026097810054|  
 |6.488486387983875E-4| 0.8719586325395925|  
 
-**areaUnderROC**: 0.9917055784173834  
-
 
 False positive rate by label:  
 label 0: 0.11847757371415604  
@@ -72,11 +70,10 @@ label 1: 0.9349689243438868
 **Precision**: 0.9735902971273835  
 **Recall**: 0.972885207473862  
 
-**Test Error**
-the mean absolute error is  0.11983125080510112  
-
-
-
+**Training AUC**
+areaUnderROC: 0.9917055784173834  
+**Testing AUC**
+areaUnderROC: 0.7708939154291566  
 
 
 
