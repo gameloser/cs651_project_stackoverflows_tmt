@@ -17,6 +17,7 @@ import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.ml.evaluation.{RegressionEvaluator, BinaryClassificationEvaluator}
+import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 
 object trainlr{
 
@@ -53,24 +54,44 @@ object trainlr{
     val lr = new LogisticRegression()
     .setMaxIter(1000)
     .setRegParam(0.01)
-    .setElasticNetParam(0)
+    .setElasticNetParam(0.0)
 
-    // Fit the model
-    val lrModel = lr.fit(training)
-    
-    // Compute raw scores on the test set.
-    val lrPrediction = lrModel.transform(test)
-    
-    // evaluate rmse
-    val regEval = new RegressionEvaluator()
-    .setPredictionCol("prediction")
-    .setMetricName("rmse")
+    // We use a ParamGridBuilder to construct a grid of parameters to search over.
+    val paramGrid = new ParamGridBuilder()
+    .addGrid(lr.maxIter, Array(100, 500, 1000))
+    .addGrid(lr.regParam, Array(0.1, 0.01))
+    .addGrid(lr.elasticNetParam, Array(0.0, 0.5, 0.8))
+    .build()
     
     // evaluate model with area under ROC
     val evaluator = new BinaryClassificationEvaluator()
     .setLabelCol("label")
     .setRawPredictionCol("prediction")
     .setMetricName("areaUnderROC")
+    
+    // A CrossValidator requires an Estimator, a set of Estimator ParamMaps, and an Evaluator.
+    val cv = new CrossValidator()
+    .setEstimator(lr)
+    .setEvaluator(evaluator)
+    .setEstimatorParamMaps(paramGrid)
+    .setNumFolds(5)  // Use 3+ in practice
+    .setParallelism(5)  // Evaluate up to x parameter settings in parallel
+    
+    
+    // Run cross-validation, and choose the best set of parameters.
+    val cvModel = cv.fit(training)
+
+    // Fit the model
+//    val lrModel = lr.fit(training)
+    
+    // Make predictions on test documents. cvModel uses the best model found (lrModel).
+    val lrPrediction = cvModel.transform(test)
+    
+//    // evaluate rmse
+//    val regEval = new RegressionEvaluator()
+//    .setPredictionCol("prediction")
+//    .setMetricName("rmse")
+    
 
     // measure the accuracy
     val accuracy = evaluator.evaluate(lrPrediction)
@@ -78,7 +99,7 @@ object trainlr{
     println(s"areaUnderROC: ${accuracy}")
     
 //    println("the mean absolute error is  "+ regEval.evaluate(lrPrediction))
-    println("the root mean squared error is " + regEval.evaluate(lrPrediction))
+//    println("the root mean squared error is " + regEval.evaluate(lrPrediction))
 
   }
 }
