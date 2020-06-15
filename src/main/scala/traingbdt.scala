@@ -1,4 +1,3 @@
-//import org.apache.spark.rdd.RDD.rddToPairRDDFunctions
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql.functions._
 import org.apache.spark.ml.feature._
@@ -19,12 +18,12 @@ import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 
-import org.apache.spark.ml.classification.{RandomForestClassificationModel, RandomForestClassifier}
+import org.apache.spark.ml.classification.{RandomForestClassificationModel, RandomForestClassifier, GBTClassificationModel, GBTClassifier}
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.ml.feature.{IndexToString, StringIndexer, VectorIndexer}
 
 
-object trainrft{
+object traingbdt{
 
   val log: Logger = {
     Logger.getLogger(getClass.getName)
@@ -36,7 +35,9 @@ object trainrft{
     log.info("Input: " + args.input())
     log.info("Output: " + args.output())
 
-    val conf = new SparkConf().setAppName("Train models")
+    val conf = new SparkConf()
+    .setAppName("Train gbdt models")
+    .set("spark.driver.maxResultSize", "4g")
     val sc = new SparkContext(conf)
 
     val outputDir = new Path(args.output())
@@ -57,22 +58,24 @@ object trainrft{
       .setInputCol("label")
       .setOutputCol("indexedLabel")
       .fit(data)
+      
     // Automatically identify categorical features, and index them.
     // Set maxCategories so features with > 4 distinct values are treated as continuous.
     val featureIndexer = new VectorIndexer()
       .setInputCol("features")
       .setOutputCol("indexedFeatures")
-      .setMaxCategories(4)
+      .setMaxCategories(5)
       .fit(data)
     
     // Split the data into training and test sets (30% held out for testing).
-    val Array(trainingData, testData) = data.randomSplit(Array(0.8, 0.2))
+    val Array(trainingData, testData) = data.randomSplit(Array(0.7, 0.3))
     
-    // Train a RandomForest model.
-    val rf = new RandomForestClassifier()
+    // Train a GBT model.
+    val gbt = new GBTClassifier()
       .setLabelCol("indexedLabel")
       .setFeaturesCol("indexedFeatures")
-      .setNumTrees(10)
+      .setMaxIter(10)
+      .setFeatureSubsetStrategy("auto")
     
     // Convert indexed labels back to original labels.
     val labelConverter = new IndexToString()
@@ -80,9 +83,9 @@ object trainrft{
       .setOutputCol("predictedLabel")
       .setLabels(labelIndexer.labels)
     
-    // Chain indexers and forest in a Pipeline.
+    // Chain indexers and GBT in a Pipeline.
     val pipeline = new Pipeline()
-      .setStages(Array(labelIndexer, featureIndexer, rf, labelConverter))
+      .setStages(Array(labelIndexer, featureIndexer, gbt, labelConverter))
     
     // Train model. This also runs the indexers.
     val model = pipeline.fit(trainingData)
@@ -98,11 +101,12 @@ object trainrft{
       .setLabelCol("indexedLabel")
       .setPredictionCol("prediction")
       .setMetricName("accuracy")
+      
     val accuracy = evaluator.evaluate(predictions)
-    println(s"Test Error = ${(1.0 - accuracy)}")
+    println(s"Test Error = ${1.0 - accuracy}")
     
-    val rfModel = model.stages(2).asInstanceOf[RandomForestClassificationModel]
-    println(s"Learned classification forest model:\n ${rfModel.toDebugString}")
-    
+    val rdd = sc
+    .parallelize(Seq(s"gbdt test accuracy: ${accuracy}"))
+    .saveAsTextFile(outputPath)
   }
 }

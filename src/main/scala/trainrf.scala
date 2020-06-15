@@ -38,7 +38,7 @@ object trainrf{
     log.info("Output: " + args.output())
 
     val conf = new SparkConf()
-    .setAppName("Train models")
+    .setAppName("Train rf models")
     .set("spark.driver.maxResultSize", "4g")
     val sc = new SparkContext(conf)
 
@@ -135,8 +135,7 @@ object trainrf{
     val accuracy = evaluator.evaluate(lrPrediction)
     println(s"areaUnderROC: ${accuracy}")
 //    println(s"Test Error = ${(1.0 - accuracy)}")
-    val rdd = 
-      sc
+    val rdd = sc
     .parallelize(Seq(s"areaUnderROC: ${accuracy}"))
     .saveAsTextFile(outputPath)
   }
