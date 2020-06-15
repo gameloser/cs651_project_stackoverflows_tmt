@@ -134,6 +134,9 @@ object trainrf{
     val accuracy = evaluator.evaluate(lrPrediction)
     println(s"areaUnderROC: ${accuracy}")
 //    println(s"Test Error = ${(1.0 - accuracy)}")
-    
+    val rdd = 
+      sc
+    .parallelize(Seq(s"areaUnderROC: ${accuracy}"))
+    .saveAsTextFile(outputPath)
   }
 }
