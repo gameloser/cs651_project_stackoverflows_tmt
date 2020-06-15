@@ -70,13 +70,14 @@ object trainrf{
       .fit(data)
     
     // Split the data into training and test sets (10% held out for testing).
-    val Array(trainingData, testData) = data.randomSplit(Array(0.7, 0.3), seed = 2020)
+    val Array(trainingData, testData) = data.randomSplit(Array(0.75, 0.25))
     
     // Train a RandomForest model.
     val rf = new RandomForestClassifier()
       .setLabelCol("indexedLabel")
       .setFeaturesCol("indexedFeatures")
-      .setSeed(2020)
+      .setMaxDepth(3)
+      .setNumTrees(20)
     
     // Convert indexed labels back to original labels.
     val labelConverter = new IndexToString()
@@ -88,13 +89,13 @@ object trainrf{
     val pipeline = new Pipeline()
       .setStages(Array(labelIndexer, featureIndexer, rf, labelConverter))
     
-    val paramGrid = new ParamGridBuilder()
-    .addGrid(rf.numTrees, Array(10))
-//    .addGrid(rf.maxDepth, Array(3, 5, 8))
-    .build()
+//    val paramGrid = new ParamGridBuilder()
+//    .addGrid(rf.numTrees, Array(10))
+////    .addGrid(rf.maxDepth, Array(3, 5, 8))
+//    .build()
     
     // Train model. This also runs the indexers.
-//    val rfmodel = pipeline.fit(trainingData)
+    val rfmodel = pipeline.fit(trainingData)
     
     // Make predictions.
 //    val rfPrediction = rfmodel.transform(testData)
@@ -103,29 +104,29 @@ object trainrf{
     // Select example rows to display.
 //    rfPrediction.select("predictedLabel", "label", "features").show(5)
     
-//    // Select (prediction, true label) and compute test error.
-//    val evaluator = new MulticlassClassificationEvaluator()
-//      .setLabelCol("indexedLabel")
-//      .setPredictionCol("prediction")
-//      .setMetricName("accuracy")
+    // Select (prediction, true label) and compute test error.
+    val evaluator = new MulticlassClassificationEvaluator()
+      .setLabelCol("indexedLabel")
+      .setPredictionCol("prediction")
+      .setMetricName("accuracy")
     
     // evaluate model with area under ROC
-    val evaluator = new BinaryClassificationEvaluator()
-    .setLabelCol("indexedLabel")
-    .setRawPredictionCol("prediction")
-    .setMetricName("areaUnderROC")
+//    val evaluator = new BinaryClassificationEvaluator()
+//    .setLabelCol("indexedLabel")
+//    .setRawPredictionCol("prediction")
+//    .setMetricName("areaUnderROC")
     
-    val trainValidationSplit = new TrainValidationSplit()
-    .setEstimator(pipeline)
-    .setEvaluator(evaluator)
-    .setEstimatorParamMaps(paramGrid)
-    // 80% of the data will be used for training and the remaining 20% for validation.
-    .setTrainRatio(0.8)
-    // Evaluate up to 2 parameter settings in parallel
-    .setParallelism(3)
+//    val trainValidationSplit = new TrainValidationSplit()
+//    .setEstimator(pipeline)
+//    .setEvaluator(evaluator)
+//    .setEstimatorParamMaps(paramGrid)
+//    // 80% of the data will be used for training and the remaining 20% for validation.
+//    .setTrainRatio(0.8)
+//    // Evaluate up to 2 parameter settings in parallel
+//    .setParallelism(3)
     
     // Run train validation split, and choose the best set of parameters.
-    val rfmodel = trainValidationSplit.fit(trainingData)
+//    val rfmodel = trainValidationSplit.fit(trainingData)
     
     // Make predictions on test documents. rfModel uses the best model found.
     val lrPrediction = rfmodel.transform(testData)
