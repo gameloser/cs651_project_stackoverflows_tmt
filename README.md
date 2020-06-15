@@ -23,7 +23,6 @@
 <h3>Logistic Regression:</h3>
 
 
-
 False positive rate by label:  
 label 0: 0.11847757371415604  
 label 1: 0.0011780514293077107  
@@ -53,6 +52,7 @@ areaUnderROC: 0.9917055784173834
 areaUnderROC: 0.7708939154291566  
 
 <h3>Random Forest:</h3>
+
 **Testing AUC**
 areaUnderROC: 0.7789420836497986  
 
