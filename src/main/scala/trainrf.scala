@@ -22,6 +22,7 @@ import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.classification.{RandomForestClassificationModel, RandomForestClassifier}
 import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, BinaryClassificationEvaluator}
 import org.apache.spark.ml.feature.{IndexToString, StringIndexer, VectorIndexer}
+import org.apache.spark.ml.tuning.{ParamGridBuilder, TrainValidationSplit}
 
 
 object trainrf{
@@ -75,7 +76,6 @@ object trainrf{
     val rf = new RandomForestClassifier()
       .setLabelCol("indexedLabel")
       .setFeaturesCol("indexedFeatures")
-      .setNumTrees(10)
       .setSeed(2020)
     
     // Convert indexed labels back to original labels.
@@ -88,14 +88,20 @@ object trainrf{
     val pipeline = new Pipeline()
       .setStages(Array(labelIndexer, featureIndexer, rf, labelConverter))
     
+    val paramGrid = new ParamGridBuilder()
+    .addGrid(rf.numTrees, Array(10))
+//    .addGrid(rf.maxDepth, Array(3, 5, 8))
+    .build()
+    
     // Train model. This also runs the indexers.
-    val rfmodel = pipeline.fit(trainingData)
+//    val rfmodel = pipeline.fit(trainingData)
     
     // Make predictions.
-    val rfPrediction = rfmodel.transform(testData)
+//    val rfPrediction = rfmodel.transform(testData)
     
+  
     // Select example rows to display.
-    rfPrediction.select("predictedLabel", "label", "features").show(5)
+//    rfPrediction.select("predictedLabel", "label", "features").show(5)
     
 //    // Select (prediction, true label) and compute test error.
 //    val evaluator = new MulticlassClassificationEvaluator()
@@ -109,7 +115,23 @@ object trainrf{
     .setRawPredictionCol("prediction")
     .setMetricName("areaUnderROC")
     
-    val accuracy = evaluator.evaluate(rfPrediction)
+    val trainValidationSplit = new TrainValidationSplit()
+    .setEstimator(pipeline)
+    .setEvaluator(evaluator)
+    .setEstimatorParamMaps(paramGrid)
+    // 80% of the data will be used for training and the remaining 20% for validation.
+    .setTrainRatio(0.8)
+    // Evaluate up to 2 parameter settings in parallel
+    .setParallelism(3)
+    
+    // Run train validation split, and choose the best set of parameters.
+    val rfmodel = trainValidationSplit.fit(trainingData)
+    
+    // Make predictions on test documents. rfModel uses the best model found.
+    val lrPrediction = rfmodel.transform(testData)
+    
+    // measure the accuracy
+    val accuracy = evaluator.evaluate(lrPrediction)
     println(s"areaUnderROC: ${accuracy}")
 //    println(s"Test Error = ${(1.0 - accuracy)}")
     
