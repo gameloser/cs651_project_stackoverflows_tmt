@@ -57,4 +57,5 @@ areaUnderROC: 0.7708939154291566
 areaUnderROC: 0.7789420836497986  
 
 
+gbdt test accuracy: 0.8812898920425802
 
